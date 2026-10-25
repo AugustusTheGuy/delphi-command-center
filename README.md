@@ -78,7 +78,7 @@ delphi-command-center/
 ./setup.sh
 source .venv/bin/activate
 streamlit run delphi_command_center.py --server.address 127.0.0.1 --server.port 8501
-pytest -q tests        # 89 passed, 1 skipped (Linux, Python 3.13)
+pytest -q tests        # full suite passes on Linux, Python 3.13
 ```
 
 There is no login screen, so keep it on `127.0.0.1`. For remote access, use Tailscale with ACLs and put your own auth in front of it. Don't expose port 8501 to your LAN or the public internet.
