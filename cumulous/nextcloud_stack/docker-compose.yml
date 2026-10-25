@@ -1,0 +1,75 @@
+# Cumulous photo plane — Nextcloud on Mac Mini HDD (ExternalSSD when available)
+# After Docker Desktop is running:
+#   cd cumulous/nextcloud_stack && docker compose up -d
+#
+# Data prefers ExternalSSD bind mounts when /Volumes/ExternalSSD exists.
+#
+# TLS-only public access:
+#   https://127.0.0.1:8443          (Mac)
+#   https://<Mac-LAN-IP>:8443      (phone / Nextcloud app)
+# Cleartext HTTP is NOT published on the host (Apache stays internal to Docker).
+
+services:
+  nextcloud-db:
+    image: mariadb:11
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks: [cumulous_nc]
+
+  nextcloud:
+    image: nextcloud:29-apache
+    restart: unless-stopped
+    # No host ports — only reachable via Caddy HTTPS reverse proxy on the Docker network
+    expose:
+      - "80"
+    volumes:
+      - nextcloud_html:/var/www/html
+      - ${CUMULOUS_NC_DATA:-/Volumes/ExternalSSD/CumulousNextcloud}:/var/www/html/data
+    environment:
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost 127.0.0.1
+      # Behind TLS proxy
+      OVERWRITEPROTOCOL: https
+    depends_on:
+      - nextcloud-db
+    networks: [cumulous_nc]
+
+  # Sole host entrypoint — HTTPS only
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs/fullchain.pem:/certs/fullchain.pem:ro
+      - ./certs/cert.pem:/certs/cert.pem:ro
+      - ./certs/key.pem:/certs/key.pem:ro
+      - ./certs/ca.pem:/certs/ca.pem:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nextcloud
+    networks: [cumulous_nc]
+
+volumes:
+  nextcloud_db:
+  nextcloud_html:
+  caddy_data:
+  caddy_config:
+
+networks:
+  cumulous_nc:
+    driver: bridge

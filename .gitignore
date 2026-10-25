@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+# Node
+node_modules/
+dist/
+# Secrets & local state — never commit
+.env
+.env.*
+*.pem
+*.key
+*.p12
+location_keys.json
+secrets/
+vps_server_package/
+*.enc
+*.sqlite
+*.db
+# OS / editor
+.DS_Store
+._*
+*.log
+.idea/
+.vscode/
+
+# Generated device profiles
+*.mobileconfig
+
+# Examples are safe to commit
+!.env.example
+!**/.env.example
+# Generated first-run admin password
+data/.initial_admin_password
+
+# Local runtime state
+data/

@@ -1,0 +1,18 @@
+{
+  "name": "Cumulous",
+  "short_name": "Cumulous",
+  "description": "Private backup and Photos library for your Apple devices",
+  "start_url": "/app/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/install/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

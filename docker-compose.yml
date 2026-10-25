@@ -1,0 +1,23 @@
+# Delphi: Home Control — service stack (PR-07)
+# Start selectively: docker compose up -d homeassistant nextcloud-aio
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ./data/ha-config:/config
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+
+  # Mount Seagate at /Volumes/ExternalSSD before enabling Nextcloud AIO
+  # nextcloud-aio:
+  #   image: nextcloud/all-in-one:latest
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - nextcloud_aio:/mnt/docker-aio-config
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+
+volumes:
+  nextcloud_aio:

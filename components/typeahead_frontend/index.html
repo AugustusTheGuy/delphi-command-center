@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: transparent; color: inherit; }
+  input { width: 100%; box-sizing: border-box; padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid #666; font-size: 0.9rem; }
+  #menu { margin-top: 4px; border: 1px solid #444; border-radius: 8px; overflow: auto; max-height: 240px; background: #111; }
+  button.row { display: block; width: 100%; text-align: left; background: transparent; color: #eee; border: 0; border-bottom: 1px solid #333; padding: 0.35rem 0.5rem; cursor: pointer; }
+  button.row:hover { background: #1f2937; }
+  mark { background: #f4c430; color: #111; padding: 0; }
+  .meta { color: #9ca3af; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+<input id="q" type="text" placeholder="Search" autocomplete="off" aria-label="Search" />
+<div id="menu" hidden></div>
+<script>
+const input = document.getElementById("q");
+const menu = document.getElementById("menu");
+let items = [];
+
+function send(type, extra) {
+  const payload = Object.assign({ isStreamlitMessage: true, type: type }, extra || {});
+  window.parent.postMessage(payload, "*");
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+function rank(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  const scored = [];
+  for (const item of items) {
+    const title = String(item.title || "");
+    const folded = title.toLowerCase();
+    let positions = [];
+    let kind = 0;
+    let start = 0;
+    let span = 0;
+    const idx = folded.indexOf(q);
+    if (idx >= 0) {
+      kind = 2;
+      start = idx;
+      span = q.length;
+      for (let i = 0; i < q.length; i += 1) positions.push(idx + i);
+    } else {
+      let cursor = 0;
+      let ok = true;
+      for (const ch of q) {
+        const found = folded.indexOf(ch, cursor);
+        if (found < 0) { ok = false; break; }
+        positions.push(found);
+        cursor = found + 1;
+      }
+      if (!ok) continue;
+      kind = 1;
+      start = positions[0];
+      span = positions[positions.length - 1] - start + 1;
+    }
+    scored.push({ kind, start, span, popularity: Number(item.popularity || 0), title: folded, item, positions });
+  }
+  scored.sort((a, b) => a.title < b.title ? -1 : a.title > b.title ? 1 : 0);
+  scored.sort((a, b) => (b.kind - a.kind) || (a.start - b.start) || (a.span - b.span) || (b.popularity - a.popularity));
+  return scored.slice(0, 10);
+}
+
+function highlight(title, positions) {
+  const marks = new Set(positions);
+  let html = "";
+  let i = 0;
+  while (i < title.length) {
+    if (marks.has(i)) {
+      let j = i;
+      while (j < title.length && marks.has(j)) j += 1;
+      html += "<mark>" + escapeHtml(title.slice(i, j)) + "</mark>";
+      i = j;
+    } else {
+      let j = i;
+      while (j < title.length && !marks.has(j)) j += 1;
+      html += escapeHtml(title.slice(i, j));
+      i = j;
+    }
+  }
+  return html;
+}
+
+function paint() {
+  const hits = rank(input.value);
+  menu.innerHTML = "";
+  if (!hits.length) {
+    menu.hidden = true;
+    return;
+  }
+  menu.hidden = false;
+  for (const hit of hits) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "row";
+    const meta = hit.item.system ? `<div class="meta">${escapeHtml(String(hit.item.system))}</div>` : "";
+    button.innerHTML = highlight(String(hit.item.title || ""), hit.positions) + meta;
+    button.addEventListener("click", () => {
+      send("streamlit:setComponentValue", {
+        value: { id: hit.item.id, title: hit.item.title, nonce: Date.now() },
+        dataType: "json"
+      });
+    });
+    menu.appendChild(button);
+  }
+}
+
+input.addEventListener("input", paint);
+
+window.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "streamlit:render") {
+    items = (data.args && data.args.items) || [];
+    paint();
+  }
+});
+
+send("streamlit:componentReady", { apiVersion: 1 });
+send("streamlit:setFrameHeight", { height: 280 });
+</script>
+</body>
+</html>

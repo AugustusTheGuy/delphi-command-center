@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Cumulous"/>
+  <meta name="theme-color" content="#000000"/>
+  <link rel="apple-touch-icon" id="appleTouchIcon" href="/install/icon.png"/>
+  <link rel="manifest" href="/app/manifest.webmanifest"/>
+  <title>Cumulous</title>
+  <style>
+    /* Cumulous — matte black · thin metallic silver · Apple blue actions */
+    :root {
+      --bg:#050505; --elevated:#0a0a0a; --card:rgba(14,14,16,.96); --card-solid:#0e0e0e;
+      --line:rgba(200,202,210,.22); --muted:#c7c7cc; --faint:#8e8e93; --text:#fafafa;
+      --blue:#007AFF; --green:#007AFF; --red:#007AFF; --amber:#ffd60a; --radius:20px;
+      --silver:#c8cad2;
+    }
+    #delphiSplash {
+      position: fixed; inset: 0; z-index: 9999; background: #000;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; transition: opacity 0.4s ease;
+    }
+    #delphiSplash.hide { opacity: 0; pointer-events: none; }
+    #delphiSplash img {
+      width: min(40vw, 152px); height: min(40vw, 152px);
+      border-radius: 22.5%; object-fit: cover;
+      animation: iconPulse 2.4s ease-in-out infinite;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    #delphiSplash .t { color: var(--text); font-size: 1.25rem; font-weight: 600; letter-spacing: -0.03em; }
+    #delphiSplash .s { color: var(--muted); font-size: 0.92rem; letter-spacing: -0.01em; }
+    #delphiSplash .v { color: var(--faint); font-size: 0.72rem; letter-spacing: 0.04em; }
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.025); opacity: 0.97; }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    #app { min-height:100%; display:flex; flex-direction:column; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    header { padding: calc(16px + env(safe-area-inset-top)) 20px 10px; }
+    header h1 { margin:0; font-size:1.7rem; font-weight:600; letter-spacing:-0.035em; }
+    header p { margin:4px 0 0; color:var(--muted); font-size:.88rem; letter-spacing:-0.01em; }
+    .search { margin:8px 16px 12px; display:flex; gap:8px; align-items:center;
+      background:var(--card-solid); border:1px solid var(--line); border-radius:14px; padding:11px 14px;
+      backdrop-filter: blur(12px); }
+    .search input { flex:1; background:transparent; border:0; outline:0; color:var(--text); font-size:1rem; }
+    .albums { display:flex; gap:8px; overflow-x:auto; padding:0 16px 14px; scrollbar-width:none; }
+    .albums::-webkit-scrollbar { display:none; }
+    .album { flex:0 0 auto; background:var(--card-solid); border:1px solid var(--line); border-radius:16px;
+      padding:10px 14px; text-align:center; min-width:86px; cursor:pointer; transition: background .15s; }
+    .album.active { border-color: rgba(10,132,255,.45); background:rgba(255,255,255,.08); }
+    .album b { display:block; font-size:.76rem; font-weight:600; letter-spacing:-0.01em; }
+    .album span { color:var(--faint); font-size:.7rem; }
+    .days { padding:0 0 28px; }
+    .day-title { padding:16px 20px 6px; font-weight:600; font-size:1.05rem; letter-spacing:-0.02em; }
+    .day-sub { padding:0 20px 10px; color:var(--faint); font-size:.82rem; }
+    /* iOS Photos–style library: 3 columns phone, 4–5 on wider viewports */
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:2px;
+      padding:0;
+    }
+    @media (min-width: 700px) {
+      .grid { grid-template-columns:repeat(4, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .grid { grid-template-columns:repeat(5, 1fr); }
+    }
+    .grid img {
+      width:100%; aspect-ratio:1; object-fit:cover; background:#0a0a0a;
+      display:block; cursor:pointer;
+    }
+    .empty { text-align:center; padding:56px 32px; color:var(--muted); }
+    .empty h2 { color:var(--text); font-size:1.15rem; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px; }
+    nav.tabbar {
+      position:fixed; left:0; right:0; bottom:0;
+      background:rgba(10,10,12,.88); backdrop-filter:blur(28px) saturate(1.2);
+      -webkit-backdrop-filter:blur(28px) saturate(1.2);
+      border-top: 0.5px solid var(--line);
+      display:flex; justify-content:space-around;
+      padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+      z-index:50;
+    }
+    nav.tabbar button {
+      background:none; border:0; color:var(--faint); font-size:.68rem; font-weight:500;
+      display:flex; flex-direction:column; align-items:center; gap:3px; min-width:64px; cursor:pointer;
+      letter-spacing:-0.01em;
+    }
+    nav.tabbar button.on { color:var(--blue); }
+    nav.tabbar button svg { width:22px; height:22px; }
+    .panel { display:none; flex:1; }
+    .panel.on { display:block; }
+    /* Apple Photos–style full-screen viewer */
+    .viewer {
+      position:fixed; inset:0; background:#000; z-index:100; display:none; flex-direction:column;
+      padding-top: env(safe-area-inset-top); touch-action: pan-y;
+    }
+    .viewer.on { display:flex; }
+    .viewer .top {
+      display:flex; align-items:center; padding:10px 14px; gap:12px; position:relative; z-index:3;
+      background: linear-gradient(180deg, rgba(0,0,0,.45), transparent);
+      flex-shrink:0;
+    }
+    .viewer .top.chrome-hidden { opacity:0; pointer-events:none; transition:opacity .18s; }
+    .viewer .filmstrip-wrap.chrome-hidden { opacity:0; pointer-events:none; max-height:0; padding:0; overflow:hidden; }
+    .viewer .top button.cs-win-close {
+      position:relative; top:auto; left:auto;
+      width:14px; height:14px; border-radius:50%;
+      background:#ff5f57; border:0.5px solid #e0443e; padding:0; cursor:pointer;
+      font-size:0; line-height:0; flex-shrink:0;
+    }
+    .viewer .top button.cs-win-close:hover { background:#ff453a; }
+    .viewer .top button.cs-win-close:hover::after {
+      content:"×"; color:rgba(0,0,0,.55); font-size:11px; font-weight:700;
+      display:flex; align-items:center; justify-content:center; height:100%;
+    }
+    .viewer .top #viewerInfoBtn {
+      background:none; border:0; color:#fff; font-size:1.15rem; padding:4px 8px; cursor:pointer; opacity:.92;
+    }
+    .viewer .stage {
+      flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;
+      position:relative; min-height:0; touch-action: pan-y;
+      cursor: grab;
+    }
+    .viewer .stage.swiping { cursor: grabbing; }
+    .viewer .stage img, .viewer .stage video {
+      max-width:100%; max-height:100%; width:auto; height:auto;
+      object-fit:contain; /* iOS Photos: full aspect-fit on black */
+      user-select:none; -webkit-user-drag:none;
+      transition: transform .12s ease-out, opacity .12s ease;
+    }
+    .viewer .stage .hint {
+      position:absolute; bottom:12px; left:0; right:0; text-align:center;
+      color:rgba(255,255,255,.35); font-size:.72rem; pointer-events:none;
+    }
+    /* Filmstrip scrubber — Photos bottom row of tiny thumbs */
+    .viewer .filmstrip-wrap {
+      flex-shrink:0;
+      background: linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,.45));
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+      z-index:3;
+    }
+    .viewer .filmstrip {
+      display:flex; gap:2px; overflow-x:auto; overflow-y:hidden;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 4px 0;
+      height: 48px;
+      align-items: center;
+    }
+    .viewer .filmstrip::-webkit-scrollbar { display:none; }
+    .viewer .filmstrip .pad { flex:0 0 max(0px, calc(50vw - 20px)); height:1px; }
+    .viewer .filmstrip .cell {
+      flex:0 0 40px; width:40px; height:40px; border-radius:2px; overflow:hidden;
+      position:relative; scroll-snap-align:center; cursor:pointer;
+      border: 1.5px solid transparent; box-sizing:border-box;
+      background:#1a1a1a;
+      transition: border-color .12s, transform .12s;
+    }
+    .viewer .filmstrip .cell.on {
+      border-color: #fff; /* thin white border like Photos */
+      transform: scale(1.06);
+      z-index:1;
+    }
+    .viewer .filmstrip .cell img {
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    .viewer .filmstrip .cell .play {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:9px; text-shadow:0 1px 2px #000;
+    }
+    .viewer .tags {
+      display:none; background:rgba(12,12,14,.96);
+      padding:12px 16px; max-height:32vh; overflow:auto;
+      font-size:.88rem; line-height:1.4; border-top:0.5px solid var(--line); flex-shrink:0;
+    }
+    .viewer .tags.on { display:block; }
+    .viewer .tags .row { display:flex; gap:10px; margin:5px 0; }
+    .viewer .tags .k { width:72px; color:var(--faint); flex-shrink:0; font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+    #codePushClose:hover { background:#ff453a !important; }
+    #codePushClose:hover::after {
+      content:"×"; color:rgba(0,0,0,.55); font-size:11px; font-weight:700;
+      display:flex; align-items:center; justify-content:center; height:100%;
+    }
+    .cat-list { margin:8px 16px 20px; }
+    .cat-card {
+      background:var(--card-solid); border:1px solid var(--line); border-radius:16px;
+      padding:12px 14px; margin-bottom:10px;
+    }
+    .cat-card .title { font-weight:600; letter-spacing:-0.02em; display:flex; justify-content:space-between; gap:8px; }
+    .cat-card .sub { display:flex; justify-content:space-between; gap:8px; font-size:.86rem; padding:4px 0 4px 4px; color:var(--text); }
+    .cat-card .sub .d { color:var(--muted); font-size:.72rem; text-align:right; max-width:48%; }
+    .cat-card .ok { color:var(--green); font-weight:700; }
+    .cat-card .no { color:var(--faint); }
+    .cat-card button.free {
+      margin-top:8px; width:100%; border:0; border-radius:12px; padding:10px;
+      color:#fff; font-weight:600; font-size:.82rem; cursor:pointer;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.12) 32%, rgba(255,255,255,0) 55%),
+        linear-gradient(180deg, #1a8fff 0%, #007AFF 48%, #0062cc 100%);
+      border:1px solid rgba(255,255,255,.28);
+      box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 16px rgba(0,122,255,.3);
+    }
+    /* Glassy blue action controls (PWA) */
+    a.cs-btn-glass-blue, button.cs-btn-glass-blue, .cs-btn-glass-blue {
+      display:block; text-align:center; color:#fff !important; text-decoration:none; font-weight:600;
+      border-radius:14px; padding:14px 16px; margin-bottom:10px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.12) 32%, rgba(255,255,255,0) 55%),
+        linear-gradient(180deg, #1a8fff 0%, #007AFF 48%, #0062cc 100%) !important;
+      border:1px solid rgba(255,255,255,.28);
+      box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 18px rgba(0,122,255,.32);
+    }
+    /* In-tab red only (not traffic-light 14px dots) — 15% smaller */
+    button.cs-btn-glass-red, .cs-btn-glass-red {
+      color:#fff !important; font-weight:700; cursor:pointer;
+      min-height:37px; padding:0.51rem 0.98rem; font-size:0.9rem; border-radius:12px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.36) 0%, rgba(255,255,255,.1) 32%, rgba(255,255,255,0) 55%),
+        linear-gradient(180deg, #ff6b63 0%, #FF3B30 48%, #d70015 100%) !important;
+      border:1px solid rgba(255,255,255,.26);
+      box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 16px rgba(255,59,48,.28);
+    }
+    .card {
+      margin:12px 16px; background:var(--card-solid); border:1px solid var(--line);
+      border-radius:var(--radius); padding:16px 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+    .card b { font-weight:600; letter-spacing:-0.02em; }
+    .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:8px; vertical-align:middle; }
+    .ok { background:var(--green); } .bad { background:var(--amber); } /* amber not red for offline */
+    .chip {
+      display:inline-flex; align-items:center; gap:4px; font-size:.7rem; font-weight:500;
+      color:var(--muted); background:rgba(255,255,255,.04); border:1px solid var(--line);
+      border-radius:999px; padding:4px 10px; margin-top:10px;
+    }
+    .chip.ok { color:var(--green); border-color:rgba(48,209,88,.22); }
+    #backupBanner {
+      display:none; margin:10px 16px 0; background:var(--card-solid); border:1px solid var(--line);
+      border-radius:18px; padding:14px 16px;
+    }
+    #backupBanner.on { display:block; }
+    #backupBanner .title-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+    #backupBanner .title { font-weight:500; font-size:.8rem; color:var(--faint); margin:0; letter-spacing:.02em; }
+    #backupBanner .pct { font-weight:600; font-size:.95rem; letter-spacing:-0.02em; font-variant-numeric: tabular-nums; }
+    #backupBanner .bar { height:7px; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden; }
+    #backupBanner .bar > i {
+      display:block; height:100%; width:0%;
+      background:linear-gradient(90deg,#30d158,#34c759);
+      border-radius:99px; transition:width .45s ease;
+      box-shadow: 0 0 12px rgba(48,209,88,.35);
+    }
+    #backupBanner .line { color:var(--muted); font-size:.76rem; margin-top:8px; line-height:1.35; }
+  </style>
+</head>
+<body>
+  <div id="delphiSplash" aria-label="Delphi Technologies">
+    <img id="splashIcon" src="/install/icon.png" alt="Cumulous"/>
+    <div class="t">Delphi Technologies</div>
+    <div class="s">Cumulous</div>
+    <div class="v" id="splashVer"></div>
+  </div>
+  <div id="app">
+    <div id="backupBanner" aria-live="polite">
+      <div class="title-row">
+        <div class="title" id="backupBannerTitle">Backup</div>
+        <div class="pct" id="backupBannerPct">0%</div>
+      </div>
+      <div class="bar"><i id="backupBannerBar"></i></div>
+      <div class="line" id="backupBannerLine"></div>
+      <div class="chip ok">Unplug anytime · continues on Wi‑Fi</div>
+    </div>
+    <section id="panel-photos" class="panel on">
+      <header>
+        <h1>Photos</h1>
+        <p id="libStatus">Loading library…</p>
+      </header>
+      <div class="search">
+        <span style="color:var(--muted)">⌕</span>
+        <input id="q" placeholder="Places, people, plants, context…" enterkeyhint="search"/>
+      </div>
+      <div class="albums" id="albums"></div>
+      <div id="photosCats" class="cat-list"></div>
+      <div class="days" id="days"></div>
+    </section>
+
+    <section id="panel-home" class="panel">
+      <header><h1>Cumulous</h1><p>Private backup · by device</p></header>
+      <div class="card" id="homeStatus"><span class="status-dot bad"></span>Checking Mac Mini…</div>
+      <div class="card">
+        <b>Photos inside the app</b>
+        <p style="color:var(--muted);margin:8px 0 0;font-size:.9rem;line-height:1.45">
+          Dual-mirrored library with deeper tags. Free phone space after both copies verify.
+        </p>
+        <div class="chip ok">Unplug-safe backup</div>
+      </div>
+      <div class="card" id="storageOptCard">
+        <b>Before backup · storage optimization</b>
+        <p id="storageOptPlan" style="color:var(--muted);margin:8px 0 12px;font-size:.88rem;line-height:1.45">
+          Loading free-space plan…
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" id="storageOptYes" style="flex:1;min-width:120px;border:0;border-radius:12px;padding:12px;background:var(--blue);color:#fff;font-weight:600">Yes — free space first</button>
+          <button type="button" id="storageOptNo" style="flex:1;min-width:120px;border:0;border-radius:12px;padding:12px;background:rgba(255,255,255,.08);color:var(--text);font-weight:600">No — just back up</button>
+        </div>
+        <p id="storageOptResult" style="color:var(--muted);margin:10px 0 0;font-size:.8rem"></p>
+      </div>
+      <div id="homeCats" class="cat-list"></div>
+    </section>
+
+    <section id="panel-backups" class="panel">
+      <header><h1>Backups</h1><p>Vault on your Mac Mini</p></header>
+      <div class="card" id="backupStats">Loading…</div>
+      <div id="backupCats" class="cat-list"></div>
+    </section>
+  </div>
+
+  <nav class="tabbar">
+    <button data-tab="home" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>Home</button>
+    <button data-tab="photos" class="on" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2zM8.5 11A1.5 1.5 0 1 1 8.5 8a1.5 1.5 0 0 1 0 3z"/></svg>Photos</button>
+    <button data-tab="backups" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v3H4V6zm0 5h16v8H4v-8zm2 2v4h12v-4H6z"/></svg>Backups</button>
+  </nav>
+
+  <div class="viewer" id="viewer">
+    <div class="top" id="viewerTop">
+      <button type="button" class="cs-win-close" id="closeViewer" aria-label="Close" title="Close"></button>
+      <div style="flex:1"></div>
+      <button type="button" id="viewerInfoBtn" aria-label="Show photo details" title="Details">ⓘ</button>
+    </div>
+    <div class="stage" id="viewerStage">
+      <img id="viewerImg" alt=""/>
+      <video id="viewerVideo" controls playsinline style="display:none;max-width:100%;max-height:100%"></video>
+    </div>
+    <div class="tags" id="viewerTags"></div>
+    <div class="filmstrip-wrap">
+      <div class="filmstrip" id="viewerFilmstrip" role="listbox" aria-label="Photo filmstrip"></div>
+    </div>
+  </div>
+
+  <!-- Live verification code push (from Mac Confirm User / CEO Override) -->
+  <div id="codePush" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);
+    align-items:center;justify-content:center;padding:24px;cursor:pointer">
+    <div id="codePushSheet" style="position:relative;background:#2c2c2e;border-radius:22px;padding:28px 24px;max-width:360px;width:100%;text-align:center;
+      box-shadow:0 24px 80px rgba(0,0,0,.5);cursor:default">
+      <button type="button" id="codePushClose" class="cs-win-close" aria-label="Close" title="Close"
+        style="position:absolute;top:12px;left:12px;right:auto;width:14px;height:14px;border-radius:50%;
+        background:#ff5f57;border:0.5px solid #e0443e;padding:0;cursor:pointer;font-size:0"></button>
+      <div style="font-size:.75rem;color:#8e8e93;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-left:18px">Cumulous verification</div>
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:6px" id="codePushTitle">Confirm User</div>
+      <div style="color:#aeaeb2;font-size:.88rem;margin-bottom:16px">Enter this code on your Mac Mini</div>
+      <div id="codePushDigits" style="display:flex;gap:10px;justify-content:center;margin:12px 0 16px"></div>
+      <div style="color:#8e8e93;font-size:.8rem" id="codePushTtl"></div>
+      <div style="color:#636366;font-size:.72rem;margin-top:10px">Tap outside or red button to close</div>
+      <button type="button" id="codePushDismiss" style="margin-top:16px;background:#3a3a3c;color:#fff;border:0;
+        border-radius:12px;padding:12px 18px;font-weight:600;width:100%">Got it</button>
+    </div>
+  </div>
+
+  <script>
+  const API = location.origin; // same host as bridge :8765
+  const $ = (s) => document.querySelector(s);
+  let albumFilter = 'recents';
+  let cache = { days: [], items: [], albums: [] };
+  /** Ordered list currently open in the Photos-style viewer */
+  let viewerList = [];
+  let viewerIndex = 0;
+  let tagsOpen = false;
+  let chromeVisible = true;
+
+  function tab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'panel-' + name));
+    document.querySelectorAll('nav.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  }
+  document.querySelectorAll('nav.tabbar button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+
+  async function jget(path) {
+    const r = await fetch(API + path, { cache: 'no-store' });
+    if (!r.ok) throw new Error(path + ' ' + r.status);
+    return r.json();
+  }
+
+  function labels(arr) {
+    if (!arr || !arr.length) return '—';
+    return arr.map(x => (x && x.label) ? x.label : x).join(', ') || '—';
+  }
+
+  function currentViewerList() {
+    if (albumFilter !== 'recents' || ($('#q').value || '').trim()) {
+      return cache.items && cache.items.length ? cache.items : flatAllItems();
+    }
+    return flatAllItems();
+  }
+  function flatAllItems() {
+    const fromDays = (cache.days || []).flatMap(d => d.items || []);
+    return fromDays.length ? fromDays : (cache.items || []);
+  }
+
+  function setViewerChrome(on) {
+    chromeVisible = !!on;
+    const top = document.getElementById('viewerTop');
+    const strip = document.querySelector('.filmstrip-wrap');
+    if (top) top.classList.toggle('chrome-hidden', !chromeVisible);
+    if (strip) strip.classList.toggle('chrome-hidden', !chromeVisible);
+    // Re-enable pointer events on close/info when chrome visible
+    if (top) top.style.pointerEvents = chromeVisible ? '' : 'none';
+  }
+
+  function openViewer(item) {
+    viewerList = currentViewerList();
+    if (!viewerList.length) viewerList = [item];
+    let idx = viewerList.findIndex(x => x.digest === item.digest);
+    if (idx < 0) { viewerList = [item, ...viewerList]; idx = 0; }
+    viewerIndex = idx;
+    tagsOpen = false;
+    $('#viewerTags').classList.remove('on');
+    $('#viewerTags').innerHTML = '';
+    $('#viewer').classList.add('on');
+    setViewerChrome(true); // close + filmstrip only — no metadata
+    buildFilmstrip();
+    showViewerIndex(viewerIndex, { scrollStrip: true, animate: false });
+  }
+
+  function buildFilmstrip() {
+    const strip = $('#viewerFilmstrip');
+    if (!strip) return;
+    const cells = viewerList.map((it, i) => {
+      const isVid = (it.media_type === 'video') || /\.(mov|mp4|m4v|3gp|avi)$/i.test(it.name || '');
+      return `<div class="cell${i===viewerIndex?' on':''}" data-i="${i}" role="option" aria-selected="${i===viewerIndex}">
+        <img loading="lazy" src="${API}/photos/thumb/${it.digest}" alt=""/>
+        ${isVid ? '<span class="play">▶</span>' : ''}
+      </div>`;
+    }).join('');
+    strip.innerHTML = `<div class="pad"></div>${cells}<div class="pad"></div>`;
+    strip.querySelectorAll('.cell').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        showViewerIndex(parseInt(el.dataset.i, 10), { scrollStrip: true, animate: true });
+      };
+    });
+    // Scrub: while scrolling filmstrip, load photo under center
+    let scrubT = null;
+    strip.onscroll = () => {
+      if (scrubT) cancelAnimationFrame(scrubT);
+      scrubT = requestAnimationFrame(() => {
+        const mid = strip.scrollLeft + strip.clientWidth / 2;
+        let best = 0, bestDist = Infinity;
+        strip.querySelectorAll('.cell').forEach(cell => {
+          const c = cell.offsetLeft + cell.offsetWidth / 2;
+          const d = Math.abs(c - mid);
+          if (d < bestDist) { bestDist = d; best = parseInt(cell.dataset.i, 10); }
+        });
+        if (best !== viewerIndex && !Number.isNaN(best)) {
+          showViewerIndex(best, { scrollStrip: false, animate: false });
+        }
+      });
+    };
+  }
+
+  function scrollFilmstripTo(i) {
+    const strip = $('#viewerFilmstrip');
+    const cell = strip && strip.querySelector(`.cell[data-i="${i}"]`);
+    if (!cell) return;
+    const left = cell.offsetLeft - (strip.clientWidth / 2) + (cell.offsetWidth / 2);
+    strip.scrollTo({ left, behavior: 'smooth' });
+  }
+
+  function showViewerIndex(i, { scrollStrip = true, animate = true } = {}) {
+    if (!viewerList.length) return;
+    i = Math.max(0, Math.min(viewerList.length - 1, i));
+    // Switching photos: hide metadata again (photo-only view)
+    if (i !== viewerIndex && tagsOpen) {
+      tagsOpen = false;
+      $('#viewerTags').classList.remove('on');
+      $('#viewerTags').innerHTML = '';
+    }
+    viewerIndex = i;
+    const item = viewerList[i];
+    const isVideo = (item.media_type === 'video') || /\.(mov|mp4|m4v|3gp|avi)$/i.test(item.name || '');
+    const img = $('#viewerImg');
+    const vid = $('#viewerVideo');
+    if (isVideo) {
+      img.style.display = 'none';
+      img.removeAttribute('src');
+      vid.style.display = 'block';
+      if (vid.dataset.digest !== item.digest) {
+        vid.src = API + '/photos/media/' + item.digest;
+        vid.dataset.digest = item.digest;
+      }
+    } else {
+      try { vid.pause(); } catch (e) {}
+      vid.removeAttribute('src');
+      vid.removeAttribute('data-digest');
+      vid.style.display = 'none';
+      img.style.display = 'block';
+      // Prefer full media; fall back to thumb
+      const next = API + '/photos/media/' + item.digest;
+      if (img.dataset.digest !== item.digest) {
+        if (animate) {
+          img.style.opacity = '0.35';
+          setTimeout(() => { img.style.opacity = '1'; }, 40);
+        }
+        img.src = next;
+        img.dataset.digest = item.digest;
+        img.onerror = () => { img.src = API + '/photos/thumb/' + item.digest; };
+      }
+      // Prefetch neighbors
+      [i - 1, i + 1].forEach(j => {
+        if (j >= 0 && j < viewerList.length) {
+          const pre = new Image();
+          pre.src = API + '/photos/thumb/' + viewerList[j].digest;
+        }
+      });
+    }
+    // Filmstrip selection
+    const strip = $('#viewerFilmstrip');
+    if (strip) {
+      strip.querySelectorAll('.cell').forEach(c => {
+        const on = parseInt(c.dataset.i, 10) === i;
+        c.classList.toggle('on', on);
+        c.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      if (scrollStrip) scrollFilmstripTo(i);
+    }
+    if (tagsOpen) loadViewerTags(item);
+  }
+
+  function loadViewerTags(item) {
+    $('#viewerTags').innerHTML = '<div style="color:var(--muted)">Loading…</div>';
+    jget('/photos/tags/' + item.digest).then(d => {
+      const t = d.tags || {};
+      const loc = t.location || {};
+      const rows = [
+        ['When', t.captured_at_iso || item.captured_at_iso || '—'],
+        ['Where', loc.place_name || item.place_name || '—'],
+        ['Setting', t.setting || item.setting || '—'],
+        ['Context', t.context || item.context || '—'],
+        ['People', labels(t.people || item.people)],
+        ['Plants', labels(t.plants || item.plants)],
+        ['Objects', labels(t.objects || item.objects)],
+        ['Details', (t.relatable_details || []).join(' · ') || '—'],
+        ['Tags', (t.keywords || item.keywords || []).slice(0, 16).join(' · ') || '—'],
+      ];
+      $('#viewerTags').innerHTML = rows.map(([k,v]) =>
+        `<div class="row"><div class="k">${k}</div><div>${v || '—'}</div></div>`).join('');
+    }).catch(() => {
+      $('#viewerTags').innerHTML = '<div class="row"><div class="k">Info</div><div>Tags unavailable</div></div>';
+    });
+  }
+
+  function closeViewer() {
+    const vid = $('#viewerVideo');
+    if (vid) { try { vid.pause(); vid.removeAttribute('src'); } catch (e) {} }
+    $('#viewer').classList.remove('on');
+    tagsOpen = false;
+    $('#viewerTags').classList.remove('on');
+    $('#viewerTags').innerHTML = '';
+    setViewerChrome(true);
+  }
+
+  // Swipe left/right on stage (Photos navigation); swipe up = details; swipe down = dismiss
+  (function bindStageSwipe() {
+    const stage = $('#viewerStage');
+    if (!stage) return;
+    let x0 = 0, y0 = 0, t0 = 0, tracking = false;
+    stage.addEventListener('touchstart', (e) => {
+      if (!e.touches[0]) return;
+      tracking = true;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+      stage.classList.add('swiping');
+    }, { passive: true });
+    stage.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
+      stage.classList.remove('swiping');
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - x0, dy = t.clientY - y0;
+      const dt = Date.now() - t0;
+      if (Math.abs(dy) > 90 && Math.abs(dy) > Math.abs(dx)) {
+        if (dy > 0) {
+          if (tagsOpen) {
+            tagsOpen = false;
+            $('#viewerTags').classList.remove('on');
+          } else {
+            closeViewer(); // swipe down dismiss
+          }
+        } else {
+          // swipe up → show details (hidden by default)
+          tagsOpen = true;
+          setViewerChrome(true);
+          $('#viewerTags').classList.add('on');
+          if (viewerList[viewerIndex]) loadViewerTags(viewerList[viewerIndex]);
+        }
+        return;
+      }
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) && dt < 600) {
+        if (dx < 0) showViewerIndex(viewerIndex + 1, { scrollStrip: true });
+        else showViewerIndex(viewerIndex - 1, { scrollStrip: true });
+      }
+    }, { passive: true });
+    // Tap stage: toggle chrome only (never auto-open metadata)
+    stage.addEventListener('click', (e) => {
+      if (Math.abs(e.clientX - x0) > 8) return;
+      if (tagsOpen) {
+        tagsOpen = false;
+        $('#viewerTags').classList.remove('on');
+        return;
+      }
+      setViewerChrome(!chromeVisible);
+    });
+    // Mouse drag for Mac / desktop
+    let md = false, mx0 = 0;
+    stage.addEventListener('mousedown', (e) => { md = true; mx0 = e.clientX; stage.classList.add('swiping'); });
+    window.addEventListener('mouseup', (e) => {
+      if (!md) return;
+      md = false; stage.classList.remove('swiping');
+      const dx = e.clientX - mx0;
+      if (Math.abs(dx) > 60) {
+        if (dx < 0) showViewerIndex(viewerIndex + 1, { scrollStrip: true });
+        else showViewerIndex(viewerIndex - 1, { scrollStrip: true });
+      }
+    });
+  })();
+
+  document.getElementById('viewerInfoBtn') && (document.getElementById('viewerInfoBtn').onclick = (e) => {
+    e.stopPropagation();
+    tagsOpen = !tagsOpen;
+    $('#viewerTags').classList.toggle('on', tagsOpen);
+    if (tagsOpen && viewerList[viewerIndex]) loadViewerTags(viewerList[viewerIndex]);
+  });
+
+  // Keyboard: arrows like desktop Photos
+  window.addEventListener('keydown', (e) => {
+    if (!$('#viewer').classList.contains('on')) return;
+    if (e.key === 'ArrowRight') showViewerIndex(viewerIndex + 1, { scrollStrip: true });
+    if (e.key === 'ArrowLeft') showViewerIndex(viewerIndex - 1, { scrollStrip: true });
+    if (e.key === 'Escape') closeViewer();
+  });
+
+  function renderCategories(rootId, report) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    const cats = (report && report.categories) || [];
+    const s = (report && report.summary) || {};
+    const head = `<div class="card" style="margin:0 0 10px"><b>Backed up · ${(report && report.device_name) || 'Device'}</b>
+      <p style="color:var(--muted);margin:6px 0 0;font-size:.82rem">${s.categories_verified||0}/${s.categories_total||0} categories ·
+      ${s.subcategories_verified||0}/${s.subcategories_total||0} types · ${s.photos_dual||0} dual photos</p></div>`;
+    root.innerHTML = head + cats.map(c => {
+      const subs = (c.subcategories || []).map(sub =>
+        `<div class="sub"><span><span class="${sub.verified?'ok':'no'}">${sub.verified?'✓':'·'}</span> ${sub.title||''}</span>
+         <span class="d">${sub.detail||''}</span></div>`
+      ).join('');
+      const freeBtn = (c.verified && c.freeable_on_device)
+        ? `<button type="button" class="free" data-cat="${c.id}">Clear “${c.title}” from this phone</button>`
+        : '';
+      return `<div class="cat-card"><div class="title"><span><span class="${c.verified?'ok':'no'}">${c.verified?'✓':'·'}</span> ${c.title||''}</span>
+        <span style="color:var(--muted);font-size:.75rem">${c.sub_verified||0}/${c.sub_total||0}</span></div>
+        ${subs}${freeBtn}</div>`;
+    }).join('');
+    root.querySelectorAll('button.free').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        btn.textContent = 'Working…';
+        try {
+          const r = await fetch(API + '/backup/categories/free', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category_id: btn.dataset.cat, source: 'ios' }),
+          });
+          const j = await r.json();
+          btn.textContent = j.ok ? 'Queued / done — vault kept' : (j.message || 'Couldn’t clear');
+        } catch (e) {
+          btn.textContent = 'Couldn’t clear';
+        }
+      };
+    });
+  }
+
+  function loadCategories() {
+    jget('/backup/categories').then(rep => {
+      renderCategories('homeCats', rep);
+      renderCategories('backupCats', rep);
+      const ph = document.getElementById('photosCats');
+      if (ph) renderCategories('photosCats', rep);
+    }).catch(() => {});
+  }
+
+  async function loadStoragePlan() {
+    const el = document.getElementById('storageOptPlan');
+    if (!el) return;
+    try {
+      const plan = await jget('/storage/optimize/plan?mode=balanced');
+      el.textContent = plan.message || (`About ${plan.projected_mb || 0} MB freeable (${plan.selected_count || 0} items). Vault stays on your Mac.`);
+    } catch (e) {
+      el.textContent = 'Connect to Mac Mini to plan free-space.';
+    }
+  }
+
+  async function answerStorageOpt(yes) {
+    const resEl = document.getElementById('storageOptResult');
+    if (resEl) resEl.textContent = yes ? 'Running…' : 'Skipped — backup only.';
+    try {
+      const r = await fetch(API + '/storage/optimize/backup-gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'ios',
+          mode: 'balanced',
+          user_wants_optimize: yes,
+          execute: !!yes,
+        }),
+      });
+      const j = await r.json();
+      if (resEl) resEl.textContent = j.message || (yes ? 'Done' : 'Skipped');
+      loadStoragePlan();
+    } catch (e) {
+      if (resEl) resEl.textContent = 'Couldn’t complete — try again on Mac.';
+    }
+  }
+  document.getElementById('storageOptYes') && (document.getElementById('storageOptYes').onclick = () => answerStorageOpt(true));
+  document.getElementById('storageOptNo') && (document.getElementById('storageOptNo').onclick = () => answerStorageOpt(false));
+  $('#closeViewer').onclick = (e) => { e.stopPropagation(); closeViewer(); };
+  // Don't close on stage/filmstrip clicks; red button / swipe-down / Esc only
+  $('#viewerStage') && ($('#viewerStage').onclick = (e) => e.stopPropagation());
+  $('#viewerTags') && ($('#viewerTags').onclick = (e) => e.stopPropagation());
+  $('#viewerFilmstrip') && ($('#viewerFilmstrip').onclick = (e) => e.stopPropagation());
+
+  function renderDays(days) {
+    const root = $('#days');
+    if (!days.length) {
+      root.innerHTML = `<div class="empty"><h2>Your library lives here</h2>
+        <p>When photos dual-mirror to the Mac, they appear in this app with deeper tags.</p></div>`;
+      return;
+    }
+    root.innerHTML = days.map(day => {
+      const imgs = (day.items || []).map(it =>
+        `<img loading="lazy" src="${API}/photos/thumb/${it.digest}" alt="" data-digest="${it.digest}"/>`
+      ).join('');
+      return `<div class="day-title">${day.title || day.id}</div>
+        ${day.subtitle ? `<div class="day-sub">${day.subtitle} · ${day.count || 0}</div>` : ''}
+        <div class="grid">${imgs}</div>`;
+    }).join('');
+    root.querySelectorAll('img[data-digest]').forEach(img => {
+      img.onclick = () => {
+        const dig = img.dataset.digest;
+        const all = cache.days.flatMap(d => d.items || []).concat(cache.items);
+        const item = all.find(x => x.digest === dig) || { digest: dig, name: dig.slice(0,8) };
+        openViewer(item);
+      };
+    });
+  }
+
+  function renderGrid(items) {
+    const root = $('#days');
+    if (!items.length) {
+      root.innerHTML = `<div class="empty"><h2>No matches</h2></div>`;
+      return;
+    }
+    root.innerHTML = `<div class="grid">${items.map(it =>
+      `<img loading="lazy" src="${API}/photos/thumb/${it.digest}" alt="" data-digest="${it.digest}"/>`
+    ).join('')}</div>`;
+    root.querySelectorAll('img[data-digest]').forEach(img => {
+      img.onclick = () => {
+        const item = items.find(x => x.digest === img.dataset.digest) || { digest: img.dataset.digest };
+        openViewer(item);
+      };
+    });
+  }
+
+  function renderAlbums(albums) {
+    $('#albums').innerHTML = albums.map(a =>
+      `<div class="album ${a.id===albumFilter?'active':''}" data-id="${a.id}">
+        <b>${a.title}</b><span>${a.count}</span></div>`
+    ).join('');
+    $('#albums').querySelectorAll('.album').forEach(el => {
+      el.onclick = () => {
+        albumFilter = el.dataset.id;
+        document.querySelectorAll('.album').forEach(x => x.classList.toggle('active', x.dataset.id===albumFilter));
+        applyFilter();
+      };
+    });
+  }
+
+  function isVideoItem(i) {
+    if ((i.media_type || '') === 'video') return true;
+    return /\.(mov|mp4|m4v|3gp|avi)$/i.test(i.name || '');
+  }
+  function isScreenshotItem(i) {
+    const n = (i.name || '').toLowerCase();
+    if (n.includes('screenshot')) return true;
+    return (i.keywords || []).some(k => String(k).toLowerCase().includes('screenshot'));
+  }
+
+  function applyFilter() {
+    const q = ($('#q').value || '').trim().toLowerCase();
+    if (q) {
+      jget('/photos/library?limit=500&q=' + encodeURIComponent(q)).then(d => {
+        cache.items = d.items || [];
+        renderGrid(cache.items);
+        $('#libStatus').textContent = (d.total || cache.items.length) + ' matches';
+      });
+      return;
+    }
+    if (albumFilter === 'recents' || albumFilter === 'library') {
+      renderDays(cache.days);
+      $('#libStatus').textContent = flatAllItems().length + ' in library · photo + video';
+      return;
+    }
+    // Filter from full flat library (days ∪ items) — fixes empty Videos / Dual chips
+    let items = flatAllItems();
+    if (albumFilter === 'videos') items = items.filter(isVideoItem);
+    if (albumFilter === 'people') items = items.filter(i => (i.people||[]).length);
+    if (albumFilter === 'places') items = items.filter(i => i.place_name);
+    if (albumFilter === 'screenshots') items = items.filter(isScreenshotItem);
+    if (albumFilter === 'dual_mirror') {
+      const dual = items.filter(i => i.dual_ok);
+      items = dual.length ? dual : items;
+    }
+    renderGrid(items);
+    $('#libStatus').textContent = items.length + ' in ' + albumFilter;
+  }
+
+  $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') applyFilter(); });
+
+  async function boot() {
+    try {
+      const health = await jget('/health');
+      const ok = !!health.ok;
+      $('#homeStatus').innerHTML = `<span class="status-dot ${ok?'ok':'bad'}"></span>${ok ? 'Connected to Mac Mini vault' : 'Mac Mini offline'}`;
+      const [days, albums, lib, report] = await Promise.all([
+        jget('/photos/days?limit_days=45'),
+        jget('/photos/albums'),
+        jget('/photos/library?limit=500'),
+        jget('/photos/mirror-report').catch(() => ({})),
+      ]);
+      cache.days = days.days || [];
+      cache.albums = albums.albums || [];
+      cache.items = lib.items || [];
+      renderAlbums(cache.albums);
+      renderDays(cache.days);
+      $('#libStatus').textContent = (lib.total || cache.items.length) + ' photos · dual-mirrored on Mac';
+      const dual = report.dual_mirrored ?? '—';
+      const pend = report.deletion_queue_pending ?? '—';
+      $('#backupStats').innerHTML = `<b>Dual-mirrored:</b> ${dual}<br><b>Ready to free on phone:</b> ${pend}<br>
+        <span style="color:var(--muted);font-size:.88rem">View photos in the Photos tab of this app.</span>`;
+      loadCategories();
+      loadStoragePlan();
+    } catch (e) {
+      $('#libStatus').textContent = 'Waiting for Mac Mini…';
+      $('#homeStatus').innerHTML = `<span class="status-dot bad"></span>Mac Mini away — join the same Wi‑Fi`;
+      $('#days').innerHTML = `<div class="empty"><h2>Waiting for Mac Mini</h2><p>Open Cumulous on the Mac and stay on the same network.</p></div>`;
+    }
+  }
+  // —— Always-latest version + icon + Delphi splash (fullscreen iOS) ——
+  (async function launchGate() {
+    let duration = 2.4;
+    try {
+      const meta = await jget('/app/version.json');
+      const ver = (meta && meta.version) || '';
+      const iconUrl = (meta.update && meta.update.ios_icon_url) || '/install/icon.png';
+      duration = (meta.splash && meta.splash.duration_sec) || duration;
+      // Scale nothing extra on iOS — always fullscreen; duration tracks load
+      document.getElementById('splashVer').textContent = ver ? ('v' + ver) : '';
+      const img = document.getElementById('splashIcon');
+      img.src = iconUrl + (iconUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+      const touch = document.getElementById('appleTouchIcon');
+      if (touch) touch.href = img.src;
+      // Persist for next cold start
+      try { localStorage.setItem('cumulous_version', ver); localStorage.setItem('cumulous_icon', iconUrl); } catch (e) {}
+    } catch (e) {
+      duration = 2.8;
+    }
+    await boot();
+    setTimeout(() => {
+      const el = document.getElementById('delphiSplash');
+      el.classList.add('hide');
+      setTimeout(() => { el.style.display = 'none'; }, 400);
+    }, Math.max(1200, duration * 1000));
+  })();
+
+  // —— Live 4-digit code push from Mac ——
+  let lastCodeId = '';
+  const codePushEl = document.getElementById('codePush');
+  function hideCodePush() { codePushEl.style.display = 'none'; }
+  document.getElementById('codePushDismiss').onclick = (e) => { e.stopPropagation(); hideCodePush(); };
+  document.getElementById('codePushClose').onclick = (e) => { e.stopPropagation(); hideCodePush(); };
+  document.getElementById('codePushSheet').onclick = (e) => e.stopPropagation();
+  // Tap dimmed background to exit
+  codePushEl.onclick = () => hideCodePush();
+  async function pollChallenge() {
+    try {
+      const d = await jget('/challenge/live');
+      const latest = d.latest;
+      if (!latest || !latest.code) return;
+      const id = latest.challenge_id || latest.code;
+      if (id === lastCodeId && codePushEl.style.display === 'flex') return;
+      lastCodeId = id;
+      const digits = String(latest.code).padStart(4, '0').slice(0, 4);
+      document.getElementById('codePushTitle').textContent =
+        (latest.purpose || 'verification').replace(/_/g, ' ');
+      document.getElementById('codePushDigits').innerHTML = digits.split('').map(ch =>
+        `<div style="width:40px;height:48px;background:#1c1c1e;border:1px solid rgba(201,162,39,0.28);border-radius:8px;display:flex;
+          align-items:center;justify-content:center;font-size:1.4rem;font-weight:600;color:#fff">${ch}</div>`
+      ).join('');
+      const place = (latest.display_place || (latest.location && latest.location.display_place) || '');
+      const mapUrl = latest.map_url || (latest.location && latest.location.map_url) || '';
+      let mapHtml = '';
+      if (mapUrl) {
+        mapHtml = `<img src="${mapUrl}" alt="map" style="width:100%;max-width:220px;height:110px;object-fit:cover;border-radius:10px;border:1px solid rgba(201,162,39,0.25);margin:8px auto;display:block" referrerpolicy="no-referrer"/>`;
+      }
+      document.getElementById('codePushTtl').innerHTML =
+        (place ? `<div style="color:#e8e8ed;font-size:.78rem;margin:6px 0">${place}</div>` : '') +
+        mapHtml +
+        `<div style="color:#a1a1a6;font-size:.7rem;margin-top:6px">` +
+        (latest.seconds_left ? Math.ceil(latest.seconds_left / 60) + ' min left · ' : '') +
+        'Use this code on the Mac</div>';
+      codePushEl.style.display = 'flex';
+      // vibrate if available
+      if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+    } catch (e) { /* offline */ }
+  }
+  setInterval(pollChallenge, 2500);
+  pollChallenge();
+
+  // —— Install push → open /install screen; register version every launch ——
+  function deviceId() {
+    try {
+      let id = localStorage.getItem('cumulous_device_id');
+      if (!id) {
+        id = 'web-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+        localStorage.setItem('cumulous_device_id', id);
+      }
+      return id;
+    } catch (e) { return 'web-anon'; }
+  }
+  async function registerInstalledVersion(ver, source) {
+    try {
+      await fetch(API + '/install/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          device_id: deviceId(),
+          version: ver || '',
+          platform: 'ios_web',
+          source: source || 'shell_boot',
+          display_name: 'Cumulous iOS shell',
+        }),
+        cache: 'no-store',
+      });
+    } catch (e) { /* offline */ }
+  }
+  // Register on boot (version from launchGate if available)
+  (async function persistentVersionSync() {
+    try {
+      const meta = await jget('/app/version.json?device_id=' + encodeURIComponent(deviceId()));
+      const ver = (meta && meta.version) || localStorage.getItem('cumulous_version') || '';
+      if (ver) try { localStorage.setItem('cumulous_version', ver); } catch (e) {}
+      await registerInstalledVersion(ver, 'shell_boot');
+      // If package newer than local, surface install push
+      const local = localStorage.getItem('cumulous_version_ack') || '';
+      if (ver && local && local !== ver) {
+        // force re-show install path for upgrade
+      }
+    } catch (e) {}
+  })();
+
+  let lastInstallPushId = '';
+  async function pollInstallPush() {
+    try {
+      const d = await jget('/install/live?device_id=' + encodeURIComponent(deviceId()));
+      const latest = d.latest;
+      if (!latest || !latest.push_id) return;
+      if (latest.push_id === lastInstallPushId) return;
+      lastInstallPushId = latest.push_id;
+      const title = latest.title || 'Install Cumulous';
+      const body = latest.body || 'Tap to open the install screen.';
+      const installUrl = latest.install_url || (API + '/install');
+      // In-app sheet: same pattern as code push
+      showInstallPush(title, body, installUrl, latest.version || '', latest.push_id);
+      if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+      // Browser notification when permitted
+      try {
+        if (typeof Notification !== 'undefined') {
+          if (Notification.permission === 'default') await Notification.requestPermission();
+          if (Notification.permission === 'granted') {
+            const n = new Notification(title, { body, icon: '/install/icon.png', tag: latest.push_id });
+            n.onclick = () => { window.location.href = '/install'; n.close(); };
+          }
+        }
+      } catch (e) {}
+    } catch (e) {}
+  }
+  function showInstallPush(title, body, url, ver, pushId) {
+    let el = document.getElementById('installPush');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'installPush';
+      el.style.cssText = 'display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:24px;cursor:pointer';
+      el.innerHTML = `
+        <div id="installPushSheet" style="position:relative;background:#2c2c2e;border-radius:22px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5);cursor:default">
+          <button type="button" id="installPushClose" aria-label="Close"
+            style="position:absolute;top:12px;left:12px;width:14px;height:14px;border-radius:50%;background:#ff5f57;border:0.5px solid #e0443e;padding:0;cursor:pointer;font-size:0"></button>
+          <div style="font-size:.75rem;color:#8e8e93;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Cumulous update</div>
+          <div id="installPushTitle" style="font-size:1.15rem;font-weight:600;margin-bottom:8px"></div>
+          <div id="installPushVer" style="color:#0a84ff;font-size:.85rem;font-weight:600;margin-bottom:10px"></div>
+          <div id="installPushBody" style="color:#aeaeb2;font-size:.9rem;line-height:1.4;margin-bottom:18px"></div>
+          <a id="installPushGo" href="/install" class="cs-btn-glass-blue">Open install screen</a>
+          <button type="button" id="installPushLater" style="background:#3a3a3c;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-weight:600;width:100%">Later</button>
+        </div>`;
+      document.body.appendChild(el);
+      el.onclick = () => { el.style.display = 'none'; };
+      document.getElementById('installPushSheet').onclick = (e) => e.stopPropagation();
+      document.getElementById('installPushClose').onclick = (e) => { e.stopPropagation(); el.style.display = 'none'; };
+      document.getElementById('installPushLater').onclick = (e) => { e.stopPropagation(); el.style.display = 'none'; };
+    }
+    document.getElementById('installPushTitle').textContent = title;
+    document.getElementById('installPushBody').textContent = body;
+    document.getElementById('installPushVer').textContent = ver ? ('v' + ver) : '';
+    const go = document.getElementById('installPushGo');
+    go.href = url || '/install';
+    go.onclick = () => {
+      if (pushId) {
+        fetch(API + '/install/ack?push_id=' + encodeURIComponent(pushId), { method: 'POST' }).catch(() => {});
+      }
+      try { localStorage.setItem('cumulous_version_ack', ver || ''); } catch (e) {}
+    };
+    el.style.display = 'flex';
+  }
+  setInterval(pollInstallPush, 3000);
+  pollInstallPush();
+
+  // service worker for offline shell
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/app/sw.js').catch(() => {});
+  }
+
+  // —— No-dim during backup: Screen Wake Lock + 0.25s reassert + silent audio ——
+  // (Web equivalent of iOS isIdleTimerDisabled; real system Auto-Lock still needs user/MDM.)
+  let wakeLock = null;
+  let keepAwakeOn = false;
+  let silentCtx = null;
+  let silentOsc = null;
+  let reassertTimer = null;
+  let percentFloor = 0;
+  try { percentFloor = parseInt(localStorage.getItem('cumulous_pct_floor') || '0', 10) || 0; } catch (e) {}
+
+  async function acquireWakeLock() {
+    try {
+      if (!('wakeLock' in navigator)) return;
+      if (wakeLock) return;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (e) { /* not allowed until gesture / visibility */ }
+  }
+  function releaseWakeLock() {
+    try { wakeLock && wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+  function startSilentAudio() {
+    try {
+      if (silentCtx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      silentCtx = new AC();
+      silentOsc = silentCtx.createOscillator();
+      const g = silentCtx.createGain();
+      g.gain.value = 0.0001; // near-silence; keeps media session alive on some iOS Safari builds
+      silentOsc.frequency.value = 20;
+      silentOsc.connect(g);
+      g.connect(silentCtx.destination);
+      silentOsc.start();
+      if (silentCtx.state === 'suspended') silentCtx.resume().catch(() => {});
+    } catch (e) {}
+  }
+  function stopSilentAudio() {
+    try { silentOsc && silentOsc.stop(); } catch (e) {}
+    try { silentCtx && silentCtx.close(); } catch (e) {}
+    silentOsc = null;
+    silentCtx = null;
+  }
+  function setKeepAwake(on) {
+    if (on === keepAwakeOn) {
+      if (on) acquireWakeLock();
+      return;
+    }
+    keepAwakeOn = on;
+    if (on) {
+      acquireWakeLock();
+      startSilentAudio();
+      if (!reassertTimer) {
+        reassertTimer = setInterval(() => {
+          if (!keepAwakeOn) return;
+          acquireWakeLock();
+          // Nudge: tiny no-op style touch of visibility / audio resume
+          try { if (silentCtx && silentCtx.state === 'suspended') silentCtx.resume(); } catch (e) {}
+        }, 250);
+      }
+    } else {
+      if (reassertTimer) { clearInterval(reassertTimer); reassertTimer = null; }
+      releaseWakeLock();
+      stopSilentAudio();
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && keepAwakeOn) acquireWakeLock();
+  });
+  // User gesture unlocks AudioContext / Wake Lock on some iOS versions
+  document.addEventListener('touchstart', () => {
+    if (keepAwakeOn) { acquireWakeLock(); startSilentAudio(); }
+  }, { passive: true, once: false });
+
+  function floorPercent(n) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
+    percentFloor = Math.max(percentFloor, v);
+    try { localStorage.setItem('cumulous_pct_floor', String(percentFloor)); } catch (e) {}
+    return percentFloor;
+  }
+  function resetPercentFloor() {
+    percentFloor = 0;
+    try { localStorage.removeItem('cumulous_pct_floor'); } catch (e) {}
+  }
+
+  async function pollBackupProgress() {
+    try {
+      const d = await jget('/backup/progress');
+      const active = !!d.active;
+      const status = d.status || '';
+      const inFlight = active || ['waiting_passcode','needs_resume','handoff','awaiting_network','running'].includes(status);
+      const power = d.power || {};
+      setKeepAwake(!!(power.keep_awake || inFlight));
+
+      const banner = document.getElementById('backupBanner');
+      if (!banner) return;
+      if (inFlight) {
+        const raw = Math.max(
+          Number(d.percent_int) || 0,
+          Math.round(Number(d.percent) || 0),
+          Math.round(Number(d.high_water_percent) || 0)
+        );
+        const pct = floorPercent(raw);
+        banner.classList.add('on');
+        document.getElementById('backupBannerTitle').textContent = 'Backup';
+        const pctEl = document.getElementById('backupBannerPct');
+        if (pctEl) pctEl.textContent = pct + '%';
+        document.getElementById('backupBannerBar').style.width = pct + '%';
+        document.getElementById('backupBannerLine').textContent = d.status_line || '';
+      } else if (status === 'complete') {
+        resetPercentFloor();
+        banner.classList.remove('on');
+        setKeepAwake(false);
+      } else {
+        banner.classList.remove('on');
+        setKeepAwake(false);
+      }
+    } catch (e) { /* offline — keep last banner/floor */ }
+  }
+  setInterval(pollBackupProgress, 2500);
+  pollBackupProgress();
+  </script>
+</body>
+</html>
