@@ -6,11 +6,11 @@ HA_URL = "http://localhost:8123"
 
 
 def render(profile: dict | None) -> None:
-    st.header("Home Management")
-    st.caption("PR-04 — HomeKit + Home Assistant API")
+    st.header("House")
+    st.caption("Rooms and lights, when Home Assistant is running on this Mac.")
 
     ha_ok = ping()
-    st.metric("Home Assistant", "Reachable" if ha_ok else "Offline (start Docker HA)")
+    st.metric("Home Assistant", "On" if ha_ok else "Off")
 
     st.link_button("Open Home Assistant", HA_URL)
 

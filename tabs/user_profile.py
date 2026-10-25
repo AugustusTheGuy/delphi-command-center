@@ -6,15 +6,15 @@ from core.theme import PRIMARY, SECONDARY, TERTIARY_LIGHT, palette_for, sanitize
 
 def _color_row(prefix: str, current: dict) -> tuple[str, str, str]:
     c1, c2, c3 = st.columns(3)
-    primary = c1.color_picker("Primary", sanitize_color(current.get("primary") or "", PRIMARY), key=f"{prefix}_primary")
-    secondary = c2.color_picker("Secondary", sanitize_color(current.get("secondary") or "", SECONDARY), key=f"{prefix}_secondary")
-    tertiary = c3.color_picker("Tertiary", sanitize_color(current.get("tertiary") or "", TERTIARY_LIGHT), key=f"{prefix}_tertiary")
+    primary = c1.color_picker("Metal", sanitize_color(current.get("primary") or "", PRIMARY), key=f"{prefix}_primary")
+    secondary = c2.color_picker("Highlight", sanitize_color(current.get("secondary") or "", SECONDARY), key=f"{prefix}_secondary")
+    tertiary = c3.color_picker("Background", sanitize_color(current.get("tertiary") or "", TERTIARY_LIGHT), key=f"{prefix}_tertiary")
     return primary, secondary, tertiary
 
 
 def render(profile: dict | None) -> None:
-    st.header("User Profile")
-    st.caption("Create profiles with custom colors, avatars, and tab layouts.")
+    st.header("Profile")
+    st.caption("Pick the metal color, the green highlight, and the background. Choose which pages this profile opens.")
 
     active_id = st.session_state.get("active_profile_id")
     active = load_profile(active_id) if active_id else None
@@ -42,7 +42,8 @@ def render(profile: dict | None) -> None:
 
     with col_create:
         st.subheader("Create Profile")
-        if st.button("➕ Create Profile", type="primary"):
+        if st.button("Create profile", key="show_create_profile_btn"):
+            st.session_state["show_create_profile"] = True
             st.session_state["show_create_profile"] = True
 
         if st.session_state.get("show_create_profile"):
@@ -66,7 +67,7 @@ def render(profile: dict | None) -> None:
         st.subheader("Profiles")
         for p in list_profiles():
             prof = load_profile(p["id"])
-            color = p.get("primary_color", "#6A0DAD")
+            color = p.get("primary_color", PRIMARY)
             cols = st.columns([0.15, 0.85])
             with cols[0]:
                 st.markdown(f"<span style='font-size:1.5rem;color:{color}'>●</span>", unsafe_allow_html=True)

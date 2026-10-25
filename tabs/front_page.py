@@ -1,6 +1,8 @@
-"""Front page. Big choices, a short setup list, and the other pages under More."""
+"""Front page. Four choices, then what still needs a setup step."""
 
 from __future__ import annotations
+
+import html
 
 import streamlit as st
 
@@ -8,9 +10,9 @@ from core.ai_status import local_ai_line
 from core.log_view import server_log_text
 from core.setup_status import setup_status
 
-BIG = (
-    ("video_library", "Video"),
-    ("home_management", "House"),
+CHOICES = (
+    ("video_library", "Video", "Movies and shows already on this Mac.", "secondary"),
+    ("home_management", "House", "Rooms and lights.", "secondary"),
 )
 
 
@@ -23,37 +25,34 @@ def render_trouble() -> None:
 
 def render(profile: dict | None, go, enabled: list[str], labels: dict[str, str]) -> None:
     del profile
-    st.markdown(
-        """
-        <style>
-        div[class*="st-key-home_"] button {
-          min-height: 96px;
-          font-size: 1.7rem;
-          font-weight: 700;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     line = local_ai_line()
     if line:
         st.caption(line)
     left, right = st.columns(2)
     slots = (left, right, left, right)
-    for (page, label), column in zip(BIG, slots):
+    for (page, label, blurb, kind), column in zip(CHOICES, slots):
         if page not in enabled:
             continue
         with column:
-            if st.button(label, key=f"home_{page}", use_container_width=True):
+            if st.button(label, key=f"home_{page}", type=kind, width="stretch"):
                 go(page)
+            st.markdown(f"<p class='dhc-choice'>{html.escape(blurb)}</p>", unsafe_allow_html=True)
     st.subheader("Setup")
     for row in setup_status():
+        kind = "ok" if row["ok"] else "idle"
         state = "Ready" if row["ok"] else "Needs a look"
-        st.write(f"**{row['label']}** — {state}. {row['detail']}")
+        label = html.escape(str(row["label"]))
+        detail = html.escape(str(row["detail"]))
+        st.markdown(
+            f"<p class='dhc-setup'><span class='dhc-status-{kind}'>{label}</span>"
+            f" · {state}. {detail}</p>",
+            unsafe_allow_html=True,
+        )
     render_trouble()
-    more = [key for key in enabled if key not in {page for page, _label in BIG}]
+    shown = {page for page, _label, _blurb, _kind in CHOICES}
+    more = [key for key in enabled if key not in shown]
     if more:
         with st.expander("More"):
             for key in more:
-                if st.button(labels.get(key, key), key=f"more_{key}", use_container_width=True):
+                if st.button(labels.get(key, key), key=f"more_{key}", width="stretch"):
                     go(key)

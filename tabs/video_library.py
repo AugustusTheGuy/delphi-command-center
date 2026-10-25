@@ -46,7 +46,7 @@ def _play_row(row: dict) -> None:
 
 
 def render(profile: dict | None) -> None:
-    st.header("Video Library")
+    st.header("Video")
     if st.button("Refresh video list", key="video_refresh"):
         from core.media_index import clear_video_cache
         clear_video_cache()
@@ -73,15 +73,15 @@ def render(profile: dict | None) -> None:
                 _play_row(match)
 
     if not nox_available():
-        st.warning("ExternalSSD not mounted — video archives require `/Volumes/ExternalSSD/DelphiMedia/Video/`.")
+        st.warning("ExternalSSD is not plugged in. Movies on that drive stay hidden until it is.")
     else:
-        st.caption(f"ExternalSSD free: **{free_gb():.1f} GB** · Movies/TV zips auto-extract on play, re-zip via hook")
+        st.caption(f"ExternalSSD has {free_gb():.1f} GB free.")
 
     st.subheader("Streaming services")
     cols = st.columns(5)
     for i, svc in enumerate(STREAMING_SERVICES):
         with cols[i % 5]:
-            if st.button(f"{svc['icon']}\n{svc['name']}", key=f"stream_{svc['name']}", use_container_width=True):
+            if st.button(svc["name"], key=f"stream_{svc['name']}", width="stretch"):
                 ok, msg = launch_streaming(svc["url"])
                 st.toast(msg) if ok else st.error(msg)
 
@@ -89,29 +89,29 @@ def render(profile: dict | None) -> None:
     st.subheader("Most watched movies")
     movies = most_watched_movies()
     if not movies:
-        st.caption("Add movie zips to `ExternalSSD/DelphiMedia/Video/Movies/archives/`")
+        st.caption("No movies in the library yet.")
     for movie in movies:
         c1, c2, c3 = st.columns([4, 1, 1])
         with c1:
             st.markdown(f"**{movie.get('title')}**")
         with c2:
-            if movie.get("on_device") and st.button("▶ Play", key=f"mplay_{movie['id']}"):
+            if movie.get("on_device") and st.button("Play", key=f"mplay_{movie['id']}", type="primary"):
                 ok, _, path = ensure_video_extracted(movie)
                 if ok and path:
                     p_ok, p_msg = play_vlc(path, movie["id"])
                     st.success(p_msg) if p_ok else st.error(p_msg)
         with c3:
-            if st.button("📦", key=f"mrezip_{movie['id']}", help="Done watching — re-zip"):
+            if st.button("Put away", key=f"mrezip_{movie['id']}", help="Done watching. Pack the file away."):
                 finish_play(movie["id"])
-                st.toast("Re-zip hook ran")
+                st.toast("Packed away.")
 
     st.divider()
     st.subheader("TV shows")
     shows = shows_index()
     if not shows:
-        st.caption("Add TV zips to `ExternalSSD/DelphiMedia/Video/TV/<Show>/Season_XX/<episode>.zip`")
+        st.caption("No shows in the library yet.")
     for show_name in sorted(shows.keys()):
-        with st.expander(f"📺 {show_name}"):
+        with st.expander(show_name):
             seasons: dict[str, list] = {}
             for ep in shows[show_name]:
                 season = (ep.get("extra") or {}).get("season", "Season_01")
@@ -123,15 +123,15 @@ def render(profile: dict | None) -> None:
                 with ec1:
                     st.write(ep_label)
                 with ec2:
-                    if ep.get("on_device") and st.button("▶", key=f"tvplay_{ep['id']}"):
+                    if ep.get("on_device") and st.button("Play", key=f"tvplay_{ep['id']}", type="primary"):
                         ok, _, path = ensure_video_extracted(ep)
                         if ok and path:
                             p_ok, p_msg = play_vlc(path, ep["id"])
                             st.success(p_msg) if p_ok else st.error(p_msg)
                 with ec3:
-                    if st.button("📦", key=f"tvrezip_{ep['id']}"):
+                    if st.button("Put away", key=f"tvrezip_{ep['id']}"):
                         finish_play(ep["id"])
-                        st.toast("Re-zip hook ran")
+                        st.toast("Packed away.")
 
     st.markdown(
         "**Local library only.** Place owned video files on ExternalSSD or the internal disk. "

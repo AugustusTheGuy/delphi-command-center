@@ -22,6 +22,8 @@ def _keep(typed: str, saved: str) -> str:
 def render(profile: dict | None) -> None:
     del profile
     st.header("Settings")
+    st.caption("Video servers, and this Mac.")
+
 
     st.divider()
     st.markdown("**Video servers**")

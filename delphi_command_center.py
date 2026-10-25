@@ -4,8 +4,8 @@ Delphi: Home Control — Command Center
 Streamlit dashboard for M4 Mac Mini ecosystem.
 """
 
+import html
 import sys
-import time
 from pathlib import Path
 
 import streamlit as st
@@ -51,16 +51,13 @@ def _login_gate() -> bool:
 
 
 def _header(profile: dict | None) -> None:
-    color = (profile or {}).get("primary_color", "#6A0DAD")
-    name = (profile or {}).get("name", st.session_state.get("username", "DelphiBEAR"))
+    name = html.escape(str((profile or {}).get("name") or st.session_state.get("username") or "Delphi"))
     st.markdown(
         f"""
         <div class="dhc-header">
-          <div>
-            <p class="dhc-gold">Delphi Technologies</p>
-            <h1 class="dhc-title" style="color:{color}">Delphi Command Center</h1>
-            <p class="dhc-subtitle">Delphi: Home Control · Profile: {name} · 50-agent program</p>
-          </div>
+          <p class="dhc-kicker">Delphi</p>
+          <h1 class="dhc-title">Command Center</h1>
+          <p class="dhc-subtitle">{name}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -77,7 +74,7 @@ def _enabled_tabs(profile: dict | None) -> list:
 def main() -> None:
     st.set_page_config(
         page_title="Delphi Command Center",
-        page_icon="🧿",
+        page_icon="D",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -88,11 +85,8 @@ def main() -> None:
     st.markdown(get_theme_css(st.session_state.theme_mode, palette_for(None)), unsafe_allow_html=True)
 
     if not st.session_state.get("splash_done"):
-        render_splash(True)
-        time.sleep(2.9)
         st.session_state.splash_done = True
-        st.rerun()
-        return
+        render_splash(True)
 
     if not _login_gate():
         return
@@ -123,25 +117,20 @@ def main() -> None:
         st.session_state.nav_page = page
 
     with st.sidebar:
-        st.markdown("### Session")
-        st.write(st.session_state.get("username", ""))
-        st.divider()
+        st.markdown(f"**{st.session_state.get('username', 'Delphi')}**")
         day_mode = st.toggle(
             "Day mode",
             value=st.session_state.theme_mode == "light",
-            help="Off = dark (default). On = day mode.",
+            help="Off keeps the black screen. On uses a light screen.",
         )
         new_mode = "light" if day_mode else "dark"
         if new_mode != st.session_state.theme_mode:
             st.session_state.theme_mode = new_mode
             st.rerun()
-        st.caption(f"Theme: **{'Day' if new_mode == 'light' else 'Dark'}**")
-        st.divider()
-        if st.button("Home", key="nav_home", use_container_width=True):
+        if st.button("Home", key="nav_home", width="stretch"):
             _go("home")
-        if st.button("Settings", key="nav_settings", use_container_width=True):
+        if st.button("Settings", key="nav_settings", width="stretch"):
             _go("settings")
-        st.caption("Delphi: Home Control · local library")
 
     labels = {key: TAB_MODULES[key][0] for key in keys}
     if page == "home":
@@ -149,7 +138,7 @@ def main() -> None:
     elif page == "settings":
         app_settings.render(profile)
     else:
-        if st.button("Back", key="nav_back"):
+        if st.button("Home", key="nav_back"):
             _go("home")
         TAB_MODULES[page][1].render(profile)
 

@@ -9,4 +9,6 @@ def test_three_colors_are_in_the_css():
 def test_rejects_css_injection():
     css = get_theme_css("dark", {"primary": "#112233;background:url(https://evil.example)"})
     assert "evil.example" not in css
-    assert "#6A0DAD" in css
+    assert "#C5CCD6" in css
+    assert "#6A0DAD" not in css
+    assert "#FF6600" not in css

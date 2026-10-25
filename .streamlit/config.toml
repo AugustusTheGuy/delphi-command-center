@@ -4,3 +4,23 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+
+[theme]
+base = "dark"
+primaryColor = "#15803D"
+backgroundColor = "#070809"
+secondaryBackgroundColor = "#121417"
+textColor = "#E8EAED"
+linkColor = "#D5DBE2"
+borderColor = "#3A414A"
+font = "sans-serif"
+baseRadius = "8px"
+buttonRadius = "8px"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#0A0C0E"
+secondaryBackgroundColor = "#121417"
+textColor = "#E8EAED"
+borderColor = "#2C3238"

@@ -43,7 +43,7 @@ def list_profiles() -> List[Dict[str, Any]]:
             profiles.append({
                 "id": p.get("id", path.stem),
                 "name": p.get("name", "Unnamed"),
-                "primary_color": p.get("primary_color", "#6A0DAD"),
+                "primary_color": p.get("primary_color", "#C5CCD6"),
                 "avatar": p.get("avatar"),
             })
         except Exception:
@@ -73,9 +73,9 @@ def save_profile(profile: Dict[str, Any]) -> str:
 
 def create_profile(
     name: str,
-    primary: str = "#6A0DAD",
-    secondary: str = "#FF6600",
-    tertiary: str = "#F4F0FA",
+    primary: str = "#C5CCD6",
+    secondary: str = "#22C55E",
+    tertiary: str = "#070809",
     enabled_tabs: Optional[Dict[str, bool]] = None,
 ) -> str:
     profile = {
