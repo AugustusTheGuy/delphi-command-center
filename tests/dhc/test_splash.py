@@ -16,15 +16,24 @@ def test_splash_runs_the_cross_then_the_four_marks():
     assert SPLASH_MARKUP.index("@keyframes dhc-d") < SPLASH_MARKUP.index("@keyframes dhc-p")
     assert SPLASH_MARKUP.index("@keyframes dhc-p") < SPLASH_MARKUP.index("@keyframes dhc-m")
     assert "@keyframes dhc-flash" in SPLASH_MARKUP
-    assert "brightness(10)" in SPLASH_MARKUP
+    assert SPLASH_MARKUP.count("unison") >= 3
     assert "prefers-reduced-motion" in SPLASH_MARKUP
     assert "<script" not in SPLASH_MARKUP.lower()
     assert SPLASH_SECONDS == 6.7
 
 
 def test_launch_does_not_block_on_a_sleep():
-    text = (Path(__file__).resolve().parents[2] / "delphi_command_center.py").read_text()
+    root = Path(__file__).resolve().parents[2]
+    text = (root / "delphi_command_center.py").read_text()
     assert "time.sleep" not in text
     assert "render_splash" in text
+    assert "shell" in text
     assert "nav_page" in text
     assert "st.tabs(" not in text
+    swift = (root / "macos" / "main.swift").read_text()
+    assert "macos/splash.html" in swift
+    assert "shell=1" in swift
+    assert "panel.level = .floating" in swift
+    assert "panel.level = .normal" not in swift
+    assert "NSApp.activate" not in swift
+    assert "moveToActiveSpace" not in swift

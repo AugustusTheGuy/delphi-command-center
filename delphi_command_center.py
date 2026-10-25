@@ -84,6 +84,8 @@ def main() -> None:
 
     st.markdown(get_theme_css(st.session_state.theme_mode, palette_for(None)), unsafe_allow_html=True)
 
+    if st.query_params.get("shell") == "1":
+        st.session_state.splash_done = True
     if not st.session_state.get("splash_done"):
         st.session_state.splash_done = True
         render_splash(True)

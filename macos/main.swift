@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var adoptedPid: Int32 = 0
     var noxScopedURL: URL?
     var noxPanelOpen = false
+    var splashStarted: Date?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -72,7 +73,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func beginLoad() {
         guard let webView, !waitingForPort else { return }
         waitingForPort = true
-        waitAndLoad(webView, attempts: 40)
+        splashStarted = nil
+        waitAndLoad(webView, attempts: 90)
     }
 
     func watchServer() {
@@ -190,9 +192,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func waitAndLoad(_ web: WKWebView, attempts: Int) {
-        if portIsOpen() {
+        if splashStarted == nil {
+            let path = projectRoot + "/macos/splash.html"
+            if let html = try? String(contentsOfFile: path, encoding: .utf8) {
+                web.loadHTMLString(html, baseURL: nil)
+            }
+            splashStarted = Date()
+        }
+        let elapsed = Date().timeIntervalSince(splashStarted ?? Date())
+        let pageReady = portIsOpen() && elapsed >= 6.7
+        if pageReady || (attempts <= 0 && portIsOpen()) {
             waitingForPort = false
-            web.load(URLRequest(url: URL(string: "http://127.0.0.1:\(serverPort)")!))
+            let page = URL(string: "http://127.0.0.1:\(serverPort)/?shell=1")!
+            web.load(URLRequest(url: page))
             return
         }
         if attempts <= 0 {
@@ -202,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window?.contentView?.addSubview(label)
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             self.waitAndLoad(web, attempts: attempts - 1)
         }
     }
